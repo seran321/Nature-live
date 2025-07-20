@@ -1,32 +1,15 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { User, Mail, Phone, MapPin, Package, Settings, LogOut } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useOrders } from '../context/OrderContext';
 
 const Account: React.FC = () => {
   const { user, logout } = useAuth();
+  const { getUserOrders } = useOrders();
   const [activeTab, setActiveTab] = useState('profile');
 
-  const mockOrders = [
-    {
-      id: 'ORD-001',
-      date: '2024-01-15',
-      total: 67.98,
-      status: 'Delivered',
-      items: [
-        { name: 'Argan Hair Oil', quantity: 2, price: 24.99 },
-        { name: 'Aloe Vera Face Wash', quantity: 1, price: 16.99 }
-      ]
-    },
-    {
-      id: 'ORD-002',
-      date: '2024-01-20',
-      total: 32.99,
-      status: 'Shipped',
-      items: [
-        { name: 'Turmeric Face Cream', quantity: 1, price: 32.99 }
-      ]
-    }
-  ];
+  const userOrders = getUserOrders();
 
   const handleLogout = () => {
     logout();
@@ -180,37 +163,70 @@ const Account: React.FC = () => {
               <div className="bg-white rounded-lg shadow-md p-6">
                 <h2 className="text-2xl font-bold mb-6">Order History</h2>
                 
-                <div className="space-y-6">
-                  {mockOrders.map((order) => (
-                    <div key={order.id} className="border border-gray-200 rounded-lg p-6">
-                      <div className="flex justify-between items-start mb-4">
-                        <div>
-                          <h3 className="font-semibold text-lg">Order {order.id}</h3>
-                          <p className="text-gray-600">Placed on {order.date}</p>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-2xl font-bold text-primary">${order.total}</p>
-                          <span className={`px-3 py-1 rounded-full text-sm ${
-                            order.status === 'Delivered' ? 'bg-green-100 text-green-800' :
-                            order.status === 'Shipped' ? 'bg-blue-100 text-blue-800' :
-                            'bg-yellow-100 text-yellow-800'
-                          }`}>
-                            {order.status}
-                          </span>
-                        </div>
-                      </div>
-                      
-                      <div className="space-y-2">
-                        {order.items.map((item, index) => (
-                          <div key={index} className="flex justify-between items-center">
-                            <span>{item.name} x{item.quantity}</span>
-                            <span>${(item.price * item.quantity).toFixed(2)}</span>
+                {userOrders.length === 0 ? (
+                  <div className="text-center py-12">
+                    <Package className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-xl font-semibold mb-2">No orders yet</h3>
+                    <p className="text-gray-600 mb-6">Start shopping to see your orders here</p>
+                    <Link
+                      to="/products"
+                      className="bg-primary text-white px-6 py-3 rounded-lg font-semibold hover:bg-primary/90 transition-colors"
+                    >
+                      Shop Now
+                    </Link>
+                  </div>
+                ) : (
+                  <div className="space-y-6">
+                    {userOrders.map((order) => (
+                      <div key={order.id} className="border border-gray-200 rounded-lg p-6">
+                        <div className="flex justify-between items-start mb-4">
+                          <div>
+                            <h3 className="font-semibold text-lg">Order {order.id}</h3>
+                            <p className="text-gray-600">Placed on {order.createdAt.toLocaleDateString()}</p>
+                            {order.trackingNumber && (
+                              <p className="text-sm text-gray-500">Tracking: {order.trackingNumber}</p>
+                            )}
                           </div>
-                        ))}
+                          <div className="text-right">
+                            <p className="text-2xl font-bold text-primary">${order.total.toFixed(2)}</p>
+                            <span className={`px-3 py-1 rounded-full text-sm capitalize ${
+                              order.status === 'delivered' ? 'bg-green-100 text-green-800' :
+                              order.status === 'shipped' ? 'bg-blue-100 text-blue-800' :
+                              order.status === 'processing' ? 'bg-yellow-100 text-yellow-800' :
+                              'bg-gray-100 text-gray-800'
+                            }`}>
+                              {order.status}
+                            </span>
+                          </div>
+                        </div>
+                        
+                        <div className="space-y-2 mb-4">
+                          {order.items.map((item, index) => (
+                            <div key={index} className="flex justify-between items-center">
+                              <span>{item.product.name} x{item.quantity}</span>
+                              <span>${(item.product.price * item.quantity).toFixed(2)}</span>
+                            </div>
+                          ))}
+                        </div>
+                        
+                        <div className="border-t pt-4">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600">
+                            <div>
+                              <h4 className="font-semibold text-gray-900 mb-2">Shipping Address</h4>
+                              <p>{order.shippingAddress.street}</p>
+                              <p>{order.shippingAddress.city}, {order.shippingAddress.state} {order.shippingAddress.zipCode}</p>
+                              <p>{order.shippingAddress.country}</p>
+                            </div>
+                            <div>
+                              <h4 className="font-semibold text-gray-900 mb-2">Payment Method</h4>
+                              <p className="text-sm">{order.paymentMethod}</p>
+                            </div>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 

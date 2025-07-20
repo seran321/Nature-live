@@ -1,9 +1,15 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { CheckCircle, Package, ArrowRight, Mail } from 'lucide-react';
+import { useOrders } from '../context/OrderContext';
 
 const OrderSuccess: React.FC = () => {
-  const orderNumber = 'ORD-' + Math.random().toString(36).substr(2, 9).toUpperCase();
+  const [searchParams] = useSearchParams();
+  const orderId = searchParams.get('orderId');
+  const { getOrderById } = useOrders();
+  
+  const order = orderId ? getOrderById(orderId) : null;
+  const orderTotal = order ? order.total + (order.total > 50 ? 0 : 5.99) + (order.total * 0.08) : 0;
   
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -19,7 +25,17 @@ const OrderSuccess: React.FC = () => {
             <Package className="h-5 w-5 text-primary" />
             <span className="font-semibold">Order Number</span>
           </div>
-          <p className="text-lg font-mono text-primary">{orderNumber}</p>
+          <p className="text-lg font-mono text-primary">{order?.id || 'N/A'}</p>
+          {order && (
+            <div className="mt-2 text-center">
+              <p className="text-sm text-gray-600">Total: <span className="font-semibold">${orderTotal.toFixed(2)}</span></p>
+              <p className="text-sm text-gray-600">Status: <span className="font-semibold capitalize">{order.status}</span></p>
+              <p className="text-sm text-gray-600">Payment: <span className="font-semibold">{order.paymentMethod}</span></p>
+              {order.trackingNumber && (
+                <p className="text-sm text-gray-600">Tracking: <span className="font-mono">{order.trackingNumber}</span></p>
+              )}
+            </div>
+          )}
         </div>
         
         <div className="text-left space-y-4 mb-6">

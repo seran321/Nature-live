@@ -3,10 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import { CreditCard, MapPin, Truck, Lock } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
+import { useOrders } from '../context/OrderContext';
 
 const Checkout: React.FC = () => {
   const { state, clearCart } = useCart();
   const { user } = useAuth();
+  const { createOrder } = useOrders();
   const navigate = useNavigate();
   const [isProcessing, setIsProcessing] = useState(false);
 
@@ -45,18 +47,56 @@ const Checkout: React.FC = () => {
     e.preventDefault();
     setIsProcessing(true);
 
-    // Simulate payment processing
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    try {
+      // Simulate payment processing
+      await new Promise(resolve => setTimeout(resolve, 2000));
 
-    // Clear cart and redirect to success page
-    clearCart();
-    navigate('/order-success');
+      // Create order with shipping address and payment method
+      const shippingAddress = {
+        street: formData.address,
+        city: formData.city,
+        state: formData.state,
+        zipCode: formData.zipCode,
+        country: formData.country
+      };
+
+      const orderId = await createOrder(
+        state.items,
+        total,
+        shippingAddress,
+        getSelectedPaymentMethod()
+      );
+
+      // Clear cart and redirect to success page with order ID
+      clearCart();
+      navigate(`/order-success?orderId=${orderId}`);
+    } catch (error) {
+      console.error('Order creation failed:', error);
+      setIsProcessing(false);
+    }
   };
 
   const subtotal = state.total;
-  const shipping = subtotal > 50 ? 0 : 5.99;
+  const shipping = formData.shippingMethod === 'express' ? 12.99 : (subtotal > 50 ? 0 : 5.99);
   const tax = subtotal * 0.08;
   const total = subtotal + shipping + tax;
+
+  const getSelectedPaymentMethod = () => {
+    const paymentMethodElement = document.querySelector('input[name="paymentMethod"]:checked') as HTMLInputElement;
+    const paymentMethod = paymentMethodElement?.value || 'card';
+    
+    switch (paymentMethod) {
+      case 'card':
+        return `Credit/Debit Card ending in ${formData.cardNumber.slice(-4) || '****'}`;
+      case 'upi':
+        const upiId = (document.getElementById('upiId') as HTMLInputElement)?.value;
+        return `UPI - ${upiId || 'UPI Payment'}`;
+      case 'cod':
+        return 'Cash on Delivery';
+      default:
+        return 'Credit/Debit Card';
+    }
+  };
 
   if (state.items.length === 0) {
     navigate('/cart');
@@ -456,7 +496,12 @@ const Checkout: React.FC = () => {
               </div>
               <div className="flex justify-between">
                 <span>Shipping:</span>
-                <span>{shipping === 0 ? 'Free' : `$${shipping.toFixed(2)}`}</span>
+                <span>
+                  {formData.shippingMethod === 'express' 
+                    ? '$12.99' 
+                    : shipping === 0 ? 'Free' : `$${shipping.toFixed(2)}`
+                  }
+                </span>
               </div>
               <div className="flex justify-between">
                 <span>Tax:</span>

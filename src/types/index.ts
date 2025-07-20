@@ -33,6 +33,8 @@ export interface Order {
   status: 'pending' | 'processing' | 'shipped' | 'delivered';
   createdAt: Date;
   shippingAddress: Address;
+  paymentMethod: string;
+  trackingNumber?: string;
 }
 
 export interface Address {
